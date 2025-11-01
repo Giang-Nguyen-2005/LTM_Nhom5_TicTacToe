@@ -1,4 +1,4 @@
-# Đồ án Lập trình mạng: Game Tic-Tac-Toe (X-O 3x3)
+# Đồ án Giữa kỳ môn Lập trình mạng: Game Tic-Tac-Toe (X-O 3x3)
 
 Dự án này xây dựng một game X-O 3x3 đa người chơi (multi-client) sử dụng Socket (TCP) và Đa luồng (Threading) trong Python.
 
