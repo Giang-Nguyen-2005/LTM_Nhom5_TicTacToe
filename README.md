@@ -12,7 +12,7 @@ Quick start
 python -m pip install pygame
 ```
 
-2. Start the server on the default port 5000:
+2. Start the server on the default port 5051:
 
 ```powershell
 python server.py
@@ -103,3 +103,23 @@ Notes
 
 - This README provides a console-friendly preview of gameplay so reviewers can understand game flow without launching the GUI.
 - For more details about the message protocol see `server.py` and `game.py`.
+
+## Cách chơi đúng (Hướng dẫn nhanh - tiếng Việt)
+
+- Mục tiêu: 3 dấu cùng loại (X hoặc O) thẳng hàng — hàng ngang, hàng dọc hoặc đường chéo.
+- Chuẩn bị: Mở `server.py` trước (mặc định lắng nghe cổng 5051), rồi mở 1 hoặc 2 client bằng `client_ttt.py`.
+- Tạo người chơi: Dùng ô "P1 Name" / "P2 Name" và bấm "Join" để tạo kết nối cho Player 1 / Player 2. Có thể tạo cả hai trong cùng một cửa sổ.
+- Lượt đi: X luôn đi trước. Chỉ được nhấp để đánh khi server thông báo đến lượt của bạn (GUI sẽ chỉ hiện ghost mark khi hợp lệ).
+- Cách đánh: Nhấp vào ô trên bàn cờ để gửi MOVE tới server. Nếu đang ở chế độ Split Screen, nhấp vào bàn bên trái để điều khiển P1, bàn bên phải để điều khiển P2.
+- Trường hợp không hợp lệ: Nếu ô đã có hoặc không phải lượt bạn, server sẽ không chấp nhận nước đi — GUI sẽ không thay đổi ô đó.
+- Kết thúc ván: Khi có người thắng hoặc hòa, GUI sẽ hiển thị thông báo thắng/hòa. Dùng nút "Reset" để bắt đầu ván mới.
+- Chat: Gõ vào ô Chat (sidebar) và nhấn Enter để gửi — tin nhắn sẽ được gửi từ client mà bạn đang điều khiển (Control P1 / Control P2).
+- Tùy chọn giao diện: Dùng nút "Split Screen" để xem hai bàn song song (thuận tiện khi bạn chạy cả P1 và P2 trên cùng một máy). Dùng "Control P1" / "Control P2" để chuyển focus nhập liệu/chat.
+
+Mẹo nhanh:
+- Nếu gặp lỗi kết nối, kiểm tra rằng `server.py` đang chạy và cổng đúng (5051), hoặc thay đổi `SERVER_HOST`/`SERVER_PORT` trong `client_ttt.py` nếu cần.
+- Để chơi nhanh trên cùng một máy: mở 1 cửa sổ GUI, bấm Join cả P1 và P2, bật Split Screen — bạn sẽ thấy hai bàn và có thể nhấp vào mỗi bàn để gửi nước đi.
+
+---
+
+For additional developer notes and protocol examples see `server.py` and `game.py`.
