@@ -1,0 +1,60 @@
+{
+  "project": "LTM_Nhom5_TicTacToe",
+  "description": "Multi-client Tic-Tac-Toe game using TCP sockets and threading",
+  "components": {
+    "server": {
+      "language": "python",
+      "file": "server.py",
+      "listen_port": 5000,
+      "protocol": "line-based UTF-8 text protocol",
+      "responsibilities": [
+        "accept client connections",
+        "pair clients into game rooms",
+        "manage game lifecycle per room using TicTacToeGame from game.py",
+        "send/receive text commands and results"
+      ]
+    },
+    "client": {
+      "language": "python",
+      "file": "client.py",
+      "behavior": [
+        "connect to server",
+        "receive START and game messages",
+        "prompt human player for moves when YOUR_TURN",
+        "send MOVE r c commands"
+      ]
+    },
+    "game_logic": {
+      "language": "python",
+      "file": "game.py",
+      "class": "TicTacToeGame",
+      "interface": {
+        "make_move(symbol, r, c)": "bool - True if accepted",
+        "check_win(symbol)": "bool",
+        "check_draw()": "bool"
+      }
+    }
+  },
+  "message_schema": {
+    "client_to_server": {
+      "MOVE": {
+        "description": "Make a move",
+        "format": "MOVE <row:int> <col:int>"
+      }
+    },
+    "server_to_client": {
+      "START": "START <X|O>",
+      "YOUR_TURN": "no args",
+      "VALID_MOVE": "ack",
+      "INVALID": "invalid move",
+      "OPPONENT_MOVE": "OPPONENT_MOVE <row> <col>",
+      "WIN|LOSE|DRAW": "game result",
+      "MESSAGE": "MESSAGE <text>"
+    }
+  },
+  "run_instructions": {
+    "server": "python server.py [port]",
+    "client": "python client.py [host] [port]"
+  },
+  "notes": "This JSON serves as a system-level contract: message protocols, ports, and responsibilities. It can be extended into an OpenAPI-like spec for socket protocols."
+}
