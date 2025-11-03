@@ -32,54 +32,66 @@ Board coordinate indices: rows and columns are 0..2
 
 Empty board (cells shown as numbers for coordinates):
 
-	 0   1   2
+```text
+   0   1   2
 0  . | . | .
-	---+---+---
+  ---+---+---
 1  . | . | .
-	---+---+---
+  ---+---+---
 2  . | . | .
+```
 
 Legend: X (player X), O (player O), . empty
 
 Sample session (server -> client lines and client -> server moves):
 
+```text
 SERVER: START X
 SERVER: MESSAGE Waiting for opponent...
 SERVER: YOUR_TURN
 CLIENT -> SERVER: MOVE 0 0    # Player X places at row 0, col 0
 SERVER: VALID_MOVE
 SERVER -> O: OPPONENT_MOVE 0 0
+```
 
 Board after X's first move:
 
-	 0   1   2
+```text
+   0   1   2
 0  X | . | .
-	---+---+---
+  ---+---+---
 1  . | . | .
-	---+---+---
+  ---+---+---
 2  . | . | .
+```
 
 Next moves (condensed):
 
+```text
 1) X -> MOVE 0 0  (valid)
 2) O -> MOVE 1 1  (valid)
 3) X -> MOVE 0 1  (valid)
 4) O -> MOVE 2 2  (valid)
 5) X -> MOVE 0 2  (valid)  <-- X completes top row and wins
+```
 
 Final board (X wins):
 
-	 0   1   2
+```text
+   0   1   2
 0  X | X | X   <- X wins
-	---+---+---
+  ---+---+---
 1  . | O | .
-	---+---+---
+  ---+---+---
 2  . | . | O
+```
 
 Server final messages for winner:
 
+```text
 SERVER: WIN
 SERVER -> opponent: LOSE
+```
 
 How to read this in the GUI
 
