@@ -31,13 +31,18 @@ FONT_S = load_font(16)
 
 def draw_button(rect, text, enabled=True):
     # Brighter, modern button with subtle shadow and readable text
-    color = (70,180,255) if enabled else (180,180,180)
+    base_color = (70,180,255) if enabled else (100,100,100)
+    shadow_color = (20,20,20)
+    text_color = (255,255,255) if enabled else (160,160,160)
+    border_color = (255,255,255) if enabled else (130,130,130)
+
     # shadow (simple darker rect offset)
     sh = rect.move(2,2)
-    pygame.draw.rect(screen, (20,20,20), sh, border_radius=10)
-    pygame.draw.rect(screen, color, rect, border_radius=10)
-    pygame.draw.rect(screen, (255,255,255), rect, width=2, border_radius=10)
-    label = FONT_M.render(text, True, (255,255,255) if enabled else (80,80,80))
+    pygame.draw.rect(screen, shadow_color, sh, border_radius=10)
+    pygame.draw.rect(screen, base_color, rect, border_radius=10)
+    pygame.draw.rect(screen, border_color, rect, width=2, border_radius=10)
+    
+    label = FONT_M.render(text, True, text_color)
     screen.blit(label, label.get_rect(center=rect.center))
 
 def play_click():
@@ -120,13 +125,18 @@ editing_name2 = False
 editing_chat = False
 active_player = 'A'  # 'A' or 'B' - which local client controls moves/chat
 
+# NEW: Constants for easier layout management
+SIDEBAR_X = 620
+SIDEBAR_WIDTH = 260
+PANEL_MARGIN = 10 # Space between panels
+
 def active_client():
     return client_a if active_player == 'A' else client_b
 
-# Sidebar buttons (placed lower to avoid overlapping chat & inputs)
-# Sidebar action buttons (repositioned to fit in 600px height)
-btn_quit  = pygame.Rect(620, 560, 120, 36)
-btn_reset = pygame.Rect(760, 560, 120, 36)
+# (Global definitions for buttons are moved inside render_sidebar
+#  and updated globally so the event loop can see them)
+btn_quit = pygame.Rect(0,0,0,0)
+btn_reset = pygame.Rect(0,0,0,0)
 
 grid_rect = pygame.Rect(MARGIN, MARGIN+50, GRID_SIZE, GRID_SIZE)
 
@@ -165,114 +175,159 @@ def draw_board(state, last_hover=None):
             label = FONT_L.render(ghost, True, (120,120,120))
             screen.blit(label, label.get_rect(center=(cx, cy)))
 
+
+# =========================================================================
+# ===== 🚀 REFACTORED SIDEBAR FUNCTION 🚀 =====
+# =========================================================================
 def render_sidebar():
+    global btn_quit, btn_reset # We need to update the global rects for clicking
+
     # Header
     title = FONT_L.render("TicTacToe Online", True, (255,255,255))
     screen.blit(title, (MARGIN, 5))
-    # Status panel
-    status_rect = pygame.Rect(620, 20, 260, 120)
+    
+    # --- Sidebar Panels (Dynamic Stacking Layout) ---
+    current_y = 20 # Y_pos to stack panels
+
+    # 1. Status panel
+    status_rect = pygame.Rect(SIDEBAR_X, current_y, SIDEBAR_WIDTH, 120)
     pygame.draw.rect(screen, (40,100,150), status_rect, border_radius=12)
     pygame.draw.rect(screen, (255,255,255), status_rect, 2, border_radius=12)
 
-    # Player A/B status
     a_name = client_a.name if client_a else "-"
     a_mark = client_a.mark if client_a else "-"
     b_name = client_b.name if client_b else "-"
     b_mark = client_b.mark if client_b else "-"
     mark_text = f"P1: {a_name} [{a_mark}]  P2: {b_name} [{b_mark}]"
-    # show turn from whichever client has state, prefer A then B
     state = client_a.state if client_a and client_a.state else (client_b.state if client_b and client_b.state else {"turn":"-","winner":None})
     turn_text = f"Turn: {state.get('turn','-')}"
     winner = state.get("winner")
     win_text = "Winner: " + ("-" if not winner else ("Draw" if winner=="D" else winner))
-    screen.blit(FONT_S.render(mark_text, True, (255,255,255)), (630, 35))
-    screen.blit(FONT_S.render(turn_text, True, (255,255,255)), (630, 65))
-    screen.blit(FONT_S.render(win_text,  True, (255,255,255)), (630, 95))
+    
+    # Draw text inside Status panel with padding
+    screen.blit(FONT_S.render(mark_text, True, (255,255,255)), (status_rect.x + 10, status_rect.y + 15))
+    screen.blit(FONT_S.render(turn_text, True, (255,255,255)), (status_rect.x + 10, status_rect.y + 45))
+    screen.blit(FONT_S.render(win_text,  True, (255,255,255)), (status_rect.x + 10, status_rect.y + 75))
 
-    # Players
-    p_rect = pygame.Rect(620, 150, 260, 100)
+    current_y += status_rect.height + PANEL_MARGIN # <-- Move Y down for next panel
+
+    # 2. Players Box
+    p_rect = pygame.Rect(SIDEBAR_X, current_y, SIDEBAR_WIDTH, 100)
     pygame.draw.rect(screen, (40,40,70), p_rect, border_radius=12)
     pygame.draw.rect(screen, (255,255,255), p_rect, 2, border_radius=12)
-    screen.blit(FONT_M.render("Players", True, (255,255,255)), (630, 155))
-    y = 185
+    
+    # *** FIX: Center-align "Players" title to prevent overflow ***
+    players_label = FONT_M.render("Players", True, (255,255,255))
+    players_label_rect = players_label.get_rect(centerx=p_rect.centerx, y=p_rect.y + 8) # 8px top padding
+    screen.blit(players_label, players_label_rect)
+
+    # Draw player list below title
+    y = p_rect.y + 35 
     for p in state.get("players", []):
         s = f"{p['name']} [{p['mark']}]"
-        screen.blit(FONT_S.render(s, True, (220,220,220)), (630, y))
+        screen.blit(FONT_S.render(s, True, (220,220,220)), (p_rect.x + 10, y))
         y += 22
 
-    # Chat
-    chat_rect = pygame.Rect(620, 260, 260, 140)
+    current_y += p_rect.height + PANEL_MARGIN # <-- Move Y down
+
+    # 3. Chat Box
+    chat_rect = pygame.Rect(SIDEBAR_X, current_y, SIDEBAR_WIDTH, 140)
     pygame.draw.rect(screen, (30,30,45), chat_rect, border_radius=12)
     pygame.draw.rect(screen, (255,255,255), chat_rect, 2, border_radius=12)
+    
     y = chat_rect.y + 10
     ac = active_client()
     chats = ac.chat if ac else []
     line_h = 20
     max_lines = max(1, (chat_rect.height - 16) // line_h)
     for line in chats[-max_lines:]:
-        screen.blit(FONT_S.render(line, True, (230,230,230)), (630, y))
+        screen.blit(FONT_S.render(line, True, (230,230,230)), (chat_rect.x + 10, y))
         y += line_h
 
-    # Inputs (placed below chat)
+    current_y += chat_rect.height + PANEL_MARGIN # <-- Move Y down
+
+    # --- 4. Inputs (P1, P2, Chat) ---
+    # Rearranged for clarity
     name1_label = FONT_S.render("P1 Name:", True, (240,240,240))
     name2_label = FONT_S.render("P2 Name:", True, (240,240,240))
-    chat_label = FONT_S.render("Chat (active):", True, (240,240,240))
-    screen.blit(name1_label, (620, 410))
-    screen.blit(name2_label, (620, 445))
-    screen.blit(chat_label, (620, 485))
+    chat_label = FONT_S.render("Chat:", True, (240,240,240))
+    
+    # P1
+    screen.blit(name1_label, (SIDEBAR_X, current_y + 4))
+    name1_box = pygame.Rect(SIDEBAR_X + 70, current_y, 120, 30)
+    join1_box = pygame.Rect(name1_box.right + 5, current_y, 65, 30) # Join button
+    current_y += 30 + 5 # height + small margin
 
-    name1_box = pygame.Rect(675, 410, 135, 30)
-    join1_box = pygame.Rect(815, 410, 65, 30)
-    name2_box = pygame.Rect(675, 445, 135, 30)
-    join2_box = pygame.Rect(815, 445, 65, 30)
-    chat_box = pygame.Rect(675, 485, 205, 30)
+    # P2
+    screen.blit(name2_label, (SIDEBAR_X, current_y + 4))
+    name2_box = pygame.Rect(SIDEBAR_X + 70, current_y, 120, 30)
+    join2_box = pygame.Rect(name2_box.right + 5, current_y, 65, 30) # Join button
+    current_y += 30 + 10 # height + larger margin
 
+    # Chat
+    screen.blit(chat_label, (SIDEBAR_X, current_y + 4))
+    chat_box = pygame.Rect(SIDEBAR_X + 70, current_y, SIDEBAR_WIDTH - 70, 30)
+    
+    # Draw input boxes
     pygame.draw.rect(screen, (230,230,230), name1_box, 2, border_radius=6)
-    pygame.draw.rect(screen, (230,230,230), join1_box, 2, border_radius=6)
     pygame.draw.rect(screen, (230,230,230), name2_box, 2, border_radius=6)
-    pygame.draw.rect(screen, (230,230,230), join2_box, 2, border_radius=6)
     pygame.draw.rect(screen, (230,230,230), chat_box, 2, border_radius=6)
+    
+    # Use draw_button for Join buttons
+    draw_button(join1_box, "Join", enabled=(client_a is None))
+    draw_button(join2_box, "Join", enabled=(client_b is None))
 
+    # Helper function (no changes, just moved inside)
+    def render_clipped(text, font, color, box):
+        s = text
+        surf = font.render(s, True, color)
+        maxw = box.width - 12 # More padding
+        if surf.get_width() <= maxw:
+            screen.blit(surf, (box.x+6, box.y+6)) # More padding
+            return
+        while surf.get_width() > maxw and len(s) > 0:
+            s = s[:-1]
+            surf = font.render(s + '…', True, color)
+        screen.blit(surf, (box.x+6, box.y+6))
+
+    # Input text colors
     name1_color = (255,230,120) if editing_name1 else (220,220,220)
     name2_color = (255,230,120) if editing_name2 else (220,220,220)
     chat_color = (255,230,120) if editing_chat else (220,220,220)
 
-    # helper to trim text to fit box
-    def render_clipped(text, font, color, box):
-        s = text
-        surf = font.render(s, True, color)
-        maxw = box.width - 8
-        if surf.get_width() <= maxw:
-            screen.blit(surf, (box.x+6, box.y+4))
-            return
-        # trim with ellipsis
-        while surf.get_width() > maxw and len(s) > 0:
-            s = s[:-1]
-            surf = font.render(s + '…', True, color)
-        screen.blit(surf, (box.x+6, box.y+4))
-
     render_clipped(input_name1, FONT_S, name1_color, name1_box)
-    screen.blit(FONT_S.render("Join", True, (255,255,255)), (join1_box.x+12, join1_box.y+6))
     render_clipped(input_name2, FONT_S, name2_color, name2_box)
-    screen.blit(FONT_S.render("Join", True, (255,255,255)), (join2_box.x+12, join2_box.y+6))
     render_clipped(input_chat, FONT_S, chat_color, chat_box)
 
-    # Switch buttons (above the main action buttons)
-    switch1 = pygame.Rect(620, 515, 120, 36)
-    switch2 = pygame.Rect(752, 515, 120, 36)
+    # --- 5. Bottom Control Buttons ---
+    # Pinned to the bottom of the screen for a clean look
+    
+    # Row 1 (Quit/Reset)
+    bottom_y = HEIGHT - PANEL_MARGIN - 36 # Start from very bottom
+    btn_quit = pygame.Rect(SIDEBAR_X, bottom_y, (SIDEBAR_WIDTH // 2) - 5, 36)
+    btn_reset = pygame.Rect(SIDEBAR_X + (SIDEBAR_WIDTH // 2) + 5, bottom_y, (SIDEBAR_WIDTH // 2) - 5, 36)
+    
+    # Row 2 (Control P1/P2)
+    bottom_y -= (36 + PANEL_MARGIN) # Move Y up for the next row
+    switch1 = pygame.Rect(SIDEBAR_X, bottom_y, (SIDEBAR_WIDTH // 2) - 5, 36)
+    switch2 = pygame.Rect(SIDEBAR_X + (SIDEBAR_WIDTH // 2) + 5, bottom_y, (SIDEBAR_WIDTH // 2) - 5, 36)
+
+    # Draw all buttons
     draw_button(switch1, "Control P1", enabled=(active_player=='A'))
     draw_button(switch2, "Control P2", enabled=(active_player=='B'))
-
-    # Buttons
     draw_button(btn_quit, "Quit")
-    draw_button(btn_reset, "Reset", enabled=True)
-
-    # return the interactive rects we need for events
+    draw_button(btn_reset, "Reset", enabled=(client_a or client_b))
+    
+    # Return all interactive rects for the event loop
     return {
         'name1_box': name1_box, 'join1_box': join1_box,
         'name2_box': name2_box, 'join2_box': join2_box,
         'chat_box': chat_box, 'switch1': switch1, 'switch2': switch2
     }
+# =========================================================================
+# ===== END REFACTORED SIDEBAR FUNCTION =====
+# =========================================================================
+
 
 # ---------- Main Loop ----------
 hover_cell = None
@@ -307,7 +362,7 @@ while running:
                 running = False
             else:
                 # focus inputs
-                rects = render_sidebar()
+                rects = render_sidebar() # This call now also updates global btn_quit/btn_reset
                 ny1 = rects['name1_box']
                 j1 = rects['join1_box']
                 ny2 = rects['name2_box']
@@ -315,39 +370,46 @@ while running:
                 cy = rects['chat_box']
                 sw1 = rects['switch1']
                 sw2 = rects['switch2']
+                
+                # Check for input box clicks
                 editing_name1 = ny1.collidepoint(mouse_pos)
                 editing_name2 = ny2.collidepoint(mouse_pos)
                 editing_chat = cy.collidepoint(mouse_pos)
-                if j1.collidepoint(mouse_pos):
-                    # create/join client A
+                
+                # Check for button clicks
+                if j1.collidepoint(mouse_pos) and client_a is None:
+                    play_click()
                     try:
                         globals()['client_a'] = Client(SERVER_HOST, SERVER_PORT)
                         client_a.join(input_name1 if input_name1.strip() else 'Player1')
                     except Exception as e:
                         print('join1 failed', e)
-                if j2.collidepoint(mouse_pos):
+                if j2.collidepoint(mouse_pos) and client_b is None:
+                    play_click()
                     try:
                         globals()['client_b'] = Client(SERVER_HOST, SERVER_PORT)
                         client_b.join(input_name2 if input_name2.strip() else 'Player2')
                     except Exception as e:
                         print('join2 failed', e)
                 if sw1.collidepoint(mouse_pos):
+                    play_click()
                     active_player = 'A'
                 if sw2.collidepoint(mouse_pos):
+                    play_click()
                     active_player = 'B'
 
         elif event.type == pygame.KEYDOWN:
             if editing_name1 or editing_name2:
                 target = '1' if editing_name1 else '2'
                 if event.key == pygame.K_RETURN:
-                    if editing_name1:
+                    if editing_name1 and client_a is None:
                         try:
                             globals()['client_a'] = Client(SERVER_HOST, SERVER_PORT)
                             client_a.join(input_name1 if input_name1.strip() else "Player1")
                         except Exception as e:
                             print('join1 failed', e)
                         editing_name1 = False
-                    else:
+                    elif editing_name2 and client_b is None:
                         try:
                             globals()['client_b'] = Client(SERVER_HOST, SERVER_PORT)
                             client_b.join(input_name2 if input_name2.strip() else "Player2")
@@ -371,7 +433,7 @@ while running:
                         ac = active_client()
                         if ac: ac.chat_send(input_chat.strip())
                     input_chat = ""
-                    editing_chat = False
+                    editing_chat = False # Stop editing on Enter
                 elif event.key == pygame.K_BACKSPACE:
                     input_chat = input_chat[:-1]
                 else:
@@ -402,7 +464,8 @@ while running:
     if w is not None:
         msg = "Draw!" if w == "D" else f"{w} Wins!"
         overlay = FONT_L.render(msg, True, (255,220,80))
-        screen.blit(overlay, overlay.get_rect(center=(grid_rect.centerx, grid_rect.y-20)))
+        # (Placed above the grid)
+        screen.blit(overlay, overlay.get_rect(center=(grid_rect.centerx, grid_rect.y - 30))) 
 
     pygame.display.flip()
     clock.tick(60)
