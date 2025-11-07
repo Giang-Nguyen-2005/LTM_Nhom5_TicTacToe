@@ -1,0 +1,69 @@
+"""TicTacToe game logic module.
+
+Provides TicTacToeGame class which maintains a 3x3 board and exposes:
+ - make_move(symbol, r, c) -> bool
+ - check_win(symbol) -> bool
+ - check_draw() -> bool
+ - board (list of list)
+"""
+
+from typing import List
+
+
+class TicTacToeGame:
+	def __init__(self):
+		# board with values: None, 'X', 'O'
+		self.board: List[List[str | None]] = [[None]*3 for _ in range(3)]
+
+	def reset(self):
+		self.board = [[None]*3 for _ in range(3)]
+
+	def make_move(self, symbol: str, r: int, c: int) -> bool:
+		"""Attempt to place symbol at (r,c). Return True if placed."""
+		if symbol not in ("X", "O"):
+			return False
+		if not (0 <= r < 3 and 0 <= c < 3):
+			return False
+		if self.board[r][c] is not None:
+			return False
+		self.board[r][c] = symbol
+		return True
+
+	def check_win(self, symbol: str) -> bool:
+		b = self.board
+		# rows
+		for r in range(3):
+			if all(b[r][c] == symbol for c in range(3)):
+				return True
+		# cols
+		for c in range(3):
+			if all(b[r][c] == symbol for r in range(3)):
+				return True
+		# diagonals
+		if all(b[i][i] == symbol for i in range(3)):
+			return True
+		if all(b[i][2-i] == symbol for i in range(3)):
+			return True
+		return False
+
+	def check_draw(self) -> bool:
+		for r in range(3):
+			for c in range(3):
+				if self.board[r][c] is None:
+					return False
+		# no winner and full board -> draw
+		if self.check_win('X') or self.check_win('O'):
+			return False
+		return True
+
+	def __str__(self):
+		def cell(v):
+			return v if v is not None else '.'
+		return '\n'.join(' '.join(cell(self.board[r][c]) for c in range(3)) for r in range(3))
+
+
+if __name__ == '__main__':
+	g = TicTacToeGame()
+	g.make_move('X',0,0)
+	g.make_move('O',1,1)
+	print(g)
