@@ -38,13 +38,19 @@ BUFSIZE = 4096
 class TTTGame:
 	def __init__(self):
 		self.lock = threading.Lock()
+		# mapping sock -> {name, mark}
+		self.players = {}
 		self.reset()
 
 	def reset(self):
 		with self.lock:
+			# Reset board and game state but preserve connected players mapping.
+			# Previously we wiped `self.players` which caused connected clients
+			# to lose their roles and be treated as spectators after a reset.
+			# Keep existing players so clients remain players and can continue.
 			self.board = [" "] * 9
-			self.players = {}        # sock -> {"name":..., "mark":"X"/"O"/"S"}
-			self.order = []          # sockets in join order (first 2 get X,O)
+			# do NOT clear self.players or self.order here; keep connections
+			# reset turn/winner/last_move to start a fresh game
 			self.turn = "X"
 			self.winner = None
 			self.last_move = None
@@ -128,10 +134,18 @@ def drop_client(sock):
 	with srv_lock:
 		if sock in clients:
 			clients.remove(sock)
+	# ensure we always have a name to report even if game.players missing
+	name = "?"
 	try:
-		name = game.players.get(sock, {}).get("name","?")
-		del game.players[sock]
+		if hasattr(game, 'players') and sock in game.players:
+			name = game.players.get(sock, {}).get("name","?")
+			try:
+				del game.players[sock]
+			except Exception:
+				# ignore deletion errors
+				pass
 	except Exception:
+		# fallback - keep name as '?'
 		pass
 	try: sock.close()
 	except: pass
