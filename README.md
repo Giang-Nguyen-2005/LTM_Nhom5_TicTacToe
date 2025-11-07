@@ -112,6 +112,14 @@ Notes
 - This README provides a console-friendly preview of gameplay so reviewers can understand game flow without launching the GUI.
 - For more details about the message protocol see `server.py` and `game.py`.
 ---
+# Demo Game XO
+
+Xem video demo:  
+[![Watch the video](https://img.youtube.com/vi/u8EoFwwrKfs/0.jpg)](https://youtu.be/u8EoFwwrKfs)
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/u8EoFwwrKfs" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+---
 ## Cách chơi đúng (Hướng dẫn nhanh - tiếng Việt)
 
 - Mục tiêu: 3 dấu cùng loại (X hoặc O) thẳng hàng — hàng ngang, hàng dọc hoặc đường chéo.
