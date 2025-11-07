@@ -9,6 +9,8 @@ This repository contains the server (`server.py`), the pygame GUI client (`clien
 <img width="1123" height="786" alt="image" src="https://github.com/user-attachments/assets/ff938ebd-dc8e-4af9-b901-3ed3656c41ab" />
 <img width="1116" height="788" alt="image" src="https://github.com/user-attachments/assets/74f89e5a-340b-409b-a99d-931a279cec20" />
 <img width="1118" height="775" alt="image" src="https://github.com/user-attachments/assets/b1366f40-e2ae-4115-996b-39e5b5325f84" />
+<img width="1118" height="781" alt="image" src="https://github.com/user-attachments/assets/ab347144-ad9a-4028-830c-2b7957bb57ff" />
+<img width="1122" height="785" alt="image" src="https://github.com/user-attachments/assets/41c27f14-b0fe-416b-8959-e9c201f08d9b" />
 
 ## Quick start
 
