@@ -3,8 +3,14 @@
 Midterm project: networked Tic-Tac-Toe (3x3) using a simple line-based text protocol.
 
 This repository contains the server (`server.py`), the pygame GUI client (`client_ttt.py`), the game logic (`game.py`) and the `assets/` used by the GUI.
+## Game run:
+<img width="1343" height="237" alt="image" src="https://github.com/user-attachments/assets/d696dba2-0026-4008-b30e-483df3a6804e" />
+<img width="954" height="335" alt="image" src="https://github.com/user-attachments/assets/ba48787a-c421-48d6-891c-7421bc572f89" />
+<img width="1123" height="786" alt="image" src="https://github.com/user-attachments/assets/ff938ebd-dc8e-4af9-b901-3ed3656c41ab" />
+<img width="1116" height="788" alt="image" src="https://github.com/user-attachments/assets/74f89e5a-340b-409b-a99d-931a279cec20" />
+<img width="1118" height="775" alt="image" src="https://github.com/user-attachments/assets/b1366f40-e2ae-4115-996b-39e5b5325f84" />
 
-Quick start
+## Quick start
 
 1. Install dependencies (GUI client requires pygame):
 
@@ -103,7 +109,7 @@ Notes
 
 - This README provides a console-friendly preview of gameplay so reviewers can understand game flow without launching the GUI.
 - For more details about the message protocol see `server.py` and `game.py`.
-
+---
 ## Cách chơi đúng (Hướng dẫn nhanh - tiếng Việt)
 
 - Mục tiêu: 3 dấu cùng loại (X hoặc O) thẳng hàng — hàng ngang, hàng dọc hoặc đường chéo.
