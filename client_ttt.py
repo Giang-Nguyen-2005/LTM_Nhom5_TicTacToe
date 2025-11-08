@@ -1137,3 +1137,88 @@ def show_game_over(self, data):
     # Kích hoạt 2 nút "Chơi tiếp" và "Thoát"
     self.replay_button.config(state=tk.NORMAL)
     self.exit_button.config(state=tk.NORMAL) 
+    def request_replay(self):
+        """
+        Hỏi người dùng có muốn chơi tiếp không (tìm trận mới).
+        """
+        response = messagebox.askyesno("Chơi tiếp", "Bạn có muốn tìm trận mới không?")
+        if response:
+            # 1. Reset lại giao diện về ban đầu
+            self.reset_for_new_game()
+            # 2. Cập nhật trạng thái
+            self.status_label.config(text="🔍 Đang tìm đối thủ...", fg=self.colors['text'])
+            # 3. Tự động gọi lại hàm kết nối
+            self.connect_to_server()
+            
+    def exit_game(self):
+        """
+        Hỏi xác nhận và thoát game.
+        """
+        if messagebox.askyesno("Thoát", "Bạn có chắc chắn muốn thoát?"):
+            self.root.destroy() # Đóng cửa sổ (sẽ kích hoạt cleanup trong hàm run())
+
+    def reset_for_new_game(self):
+        """
+        Reset toàn bộ giao diện và trạng thái về ban đầu.
+        """
+        self.game_started = False
+        self.my_symbol = None
+        self.current_turn = 'X'
+        
+        # Reset bàn cờ (xóa X, O)
+        for i in range(3):
+            for j in range(3):
+                self.buttons[i][j].config(
+                    text="",
+                    state=tk.DISABLED,
+                    bg=self.colors['secondary'],
+                    disabledforeground=self.colors['text'] # Reset màu chữ
+                )
+        
+        # Reset các label
+        self.status_label.config(text="⚪ Chưa kết nối", fg=self.colors['text'])
+        self.player_label.config(text="Bạn là: --", fg=self.colors['text'])
+        self.turn_label.config(text="Lượt: X", fg=self.colors['X'])
+        
+    
+        self.connect_button.config(state=tk.NORMAL)
+        
+        
+        self.replay_button.config(state=tk.DISABLED)
+        self.exit_button.config(state=tk.DISABLED)
+        
+        # Đóng socket CŨ (nếu có) để chuẩn bị cho kết nối mới
+        if self.socket:
+            try:
+                self.socket.close()
+            except:
+                pass
+    
+    def send_message(self, data):
+        """
+        Hàm tiện ích: Chuyển dict -> JSON string và gửi đi.
+        """
+        try:
+            message = json.dumps(data) + '\n'
+            self.socket.sendall(message.encode('utf-8'))
+        except Exception as e:
+            # Lỗi thường xảy ra nếu gửi tin khi socket đã bị đóng
+            print(f"❌ Lỗi khi gửi tin nhắn: {e}")
+    
+    def run(self):
+        """
+        Chạy ứng dụng
+        """
+        self.root.mainloop()
+        
+        if self.socket:
+            try:
+                self.send_message({'type': 'DISCONNECT'})
+                self.socket.close()
+            except:
+                pass 
+
+
+if __name__ == "__main__":
+    client = TicTacToeClient()
+    client.run()
