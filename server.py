@@ -18,22 +18,22 @@ and spawns a thread per game (room). Designed to be simple and easy to extend.
 
 import socket
 import threading
-import logging
-import sys
+import json
 from game import TicTacToeGame
 
-logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s")
-
-import socket
-import threading
-import json
-import time
-import random
-
-HOST, PORT = "0.0.0.0", 5051
-ENC = "utf-8"
-BUFSIZE = 4096
-
+class TicTacToeServer:
+    """
+    Server game Tic-Tac-Toe đa người chơi
+    """
+    
+    def __init__(self, host='0.0.0.0', port=5555):
+        self.host = host
+        self.port = port
+        self.server_socket = None
+        self.waiting_client = None  # Client đang chờ ghép đôi
+        self.games = []  # Danh sách các phòng chơi
+        self.lock = threading.Lock()
+        
 # ---- Game Model ----
 class TTTGame:
 	def __init__(self):
