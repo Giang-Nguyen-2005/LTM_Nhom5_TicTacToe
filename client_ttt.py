@@ -1033,4 +1033,107 @@ def handle_server_message(self, data):
         self.root.after(0, lambda: messagebox.showinfo("Thông báo", data['message']))
         # Tự động reset game về sảnh chờ
         self.root.after(0, self.reset_for_new_game) 
+def start_game(self):
+    """
+    Cài đặt giao diện khi game chính thức bắt đầu.
+    """
+    self.status_label.config(text="🎮 Trận đấu đã bắt đầu!")
+    self.player_label.config(
+        text=f"Bạn là: {self.my_symbol}",
+        fg=self.colors[self.my_symbol] # Đổi màu chữ (X/O)
+    )
+    # Kích hoạt tất cả các nút trên bàn cờ
+    for i in range(3):
+        for j in range(3):
+            # Chỉ kích hoạt các nút còn trống
+            if self.buttons[i][j]['text'] == "":
+                self.buttons[i][j].config(state=tk.NORMAL)
     
+    # Cập nhật lượt đi đầu tiên (luôn là X)
+    self.update_turn('X')
+
+def make_move(self, row, col):
+    """
+    Được gọi khi người chơi click vào một ô trên bàn cờ.
+    """
+    # 1. Kiểm tra game đã bắt đầu chưa
+    if not self.game_started: return
+    
+    # 2. Kiểm tra xem có phải lượt của mình không
+    if self.current_turn != self.my_symbol:
+        messagebox.showwarning("Cảnh báo", "Chưa đến lượt của bạn!")
+        return
+        
+    # 3. Kiểm tra xem ô đã được đánh chưa
+    if self.buttons[row][col]['text'] != "":
+        messagebox.showwarning("Cảnh báo", "Ô này đã có người đánh!")
+        return
+        
+    # 4. Gửi nước đi lên server (Server sẽ là người xác thực cuối cùng)
+    self.send_message({
+        'type': 'MOVE',
+        'row': row,
+        'col': col
+    })
+
+def update_board(self, data):
+    """
+    Vẽ nước đi (X hoặc O) lên bàn cờ theo lệnh của server.
+    """
+    row = data['row']
+    col = data['col']
+    symbol = data['symbol']
+    
+    # Cập nhật nút: Đổi text, đổi màu, và vô hiệu hóa nó
+    self.buttons[row][col].config(
+        text=symbol,
+        fg=self.colors[symbol],
+        disabledforeground=self.colors[symbol], # Giữ màu đẹp khi bị vô hiệu hóa
+        state=tk.DISABLED
+    )
+    
+    # Cập nhật lượt đi cho người tiếp theo
+    next_turn = 'O' if symbol == 'X' else 'X'
+    self.update_turn(next_turn)
+
+def update_turn(self, turn):
+    """
+    Cập nhật Label "Lượt:"
+    """
+    self.current_turn = turn
+    self.turn_label.config(
+        text=f"Lượt: {turn}",
+        fg=self.colors[turn] # Đổi màu chữ (X/O)
+    )
+    
+    # Cập nhật thanh trạng thái
+    if turn == self.my_symbol:
+        self.status_label.config(text="🎯 Đến lượt của bạn!")
+    else:
+        self.status_label.config(text="⏳ Đang chờ đối thủ...")
+
+def show_game_over(self, data):
+    """
+    Hiển thị kết quả (Thắng/Thua/Hòa) khi game kết thúc.
+    """
+    result = data['result']
+    
+    # Vô hiệu hóa toàn bộ bàn cờ
+    for i in range(3):
+        for j in range(3):
+            self.buttons[i][j].config(state=tk.DISABLED)
+    
+    # Hiển thị kết quả lên thanh trạng thái và popup
+    if result == 'WIN':
+        self.status_label.config(text="🎉 Bạn thắng!", fg=self.colors['win'])
+        messagebox.showinfo("Kết quả", "🎉 Chúc mừng! Bạn đã thắng! 🏆")
+    elif result == 'LOSE':
+        self.status_label.config(text="😢 Bạn thua!", fg=self.colors['lose'])
+        messagebox.showinfo("Kết quả", "😢 Rất tiếc! Bạn đã thua!")
+    else:  # DRAW
+        self.status_label.config(text="🤝 Hòa!", fg=self.colors['O'])
+        messagebox.showinfo("Kết quả", "🤝 Trận đấu hòa!")
+    
+    # Kích hoạt 2 nút "Chơi tiếp" và "Thoát"
+    self.replay_button.config(state=tk.NORMAL)
+    self.exit_button.config(state=tk.NORMAL) 
