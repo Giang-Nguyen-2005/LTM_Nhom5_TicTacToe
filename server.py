@@ -80,62 +80,118 @@ class TicTacToeServer:
         finally:
             self.server_socket.close()
     
-
-
-game = TTTGame()
-clients = set()
-srv_lock = threading.Lock()
-
-def send(sock, obj):
-	try:
-		data = (json.dumps(obj) + "\n").encode(ENC)
-		sock.sendall(data)
-	except Exception:
-		pass
-
-def broadcast(obj):
-	dead = []
-	for s in list(clients):
-		try:
-			s.sendall((json.dumps(obj)+"\n").encode(ENC))
-		except Exception:
-			dead.append(s)
-	for d in dead:
-		drop_client(d)
-
-def drop_client(sock):
-	with srv_lock:
-		if sock in clients:
-			clients.remove(sock)
-	# ensure we always have a name to report even if game.players missing
-	name = "?"
-	try:
-		if hasattr(game, 'players') and sock in game.players:
-			name = game.players.get(sock, {}).get("name","?")
-			try:
-				del game.players[sock]
-			except Exception:
-				# ignore deletion errors
-				pass
-	except Exception:
-		# fallback - keep name as '?'
-		pass
-	try: sock.close()
-	except: pass
-	broadcast({"type":"INFO","msg":f"{name} left."})
-	# Rebalance X/O if a player left
-	with game.lock:
-		marks_present = [p["mark"] for p in game.players.values()]
-		# ensure X then O assigned to earliest spectators
-		need = []
-		if "X" not in marks_present: need.append("X")
-		if "O" not in marks_present: need.append("O")
-		for need_mark in need:
-			for s,info in game.players.items():
-				if info["mark"] == "S":
-					info["mark"] = need_mark
-					break
-	broadcast(game.snapshot())
+    def handle_game(self, client1, client2):
+        """
+        Xử lý một ván chơi giữa 2 người chơi
+        
+        Args:
+            client1: Socket của người chơi X
+            client2: Socket của người chơi O
+        """
+        game = TicTacToeGame()
+        players = {
+            client1: {'symbol': 'X', 'socket': client1},
+            client2: {'symbol': 'O', 'socket': client2}
+        }
+        
+        # Thông báo cho cả 2 người chơi về ký hiệu của họ
+        self.send_message(client1, {
+            'type': 'START',
+            'symbol': 'X',
+            'message': 'Trận đấu bắt đầu! Bạn là X và đi trước.'
+        })
+        
+        self.send_message(client2, {
+            'type': 'START',
+            'symbol': 'O',
+            'message': 'Trận đấu bắt đầu! Bạn là O và đi sau.'
+        })
+        
+        # Vòng lặp game
+        try:
+            while not game.is_game_over():
+                # Xác định người chơi hiện tại
+                current_socket = client1 if game.current_player == 'X' else client2
+                
+                # Nhận nước đi từ người chơi
+                data = self.receive_message(current_socket)
+                
+                if not data or data['type'] == 'DISCONNECT':
+                    # Người chơi ngắt kết nối
+                    other_socket = client2 if current_socket == client1 else client1
+                    self.send_message(other_socket, {
+                        'type': 'OPPONENT_DISCONNECTED',
+                        'message': 'Đối thủ đã ngắt kết nối. Bạn thắng!'
+                    })
+                    break
+                
+                if data['type'] == 'MOVE':
+                    row, col = data['row'], data['col']
+                    player_symbol = players[current_socket]['symbol']
+                    
+                    # Thực hiện nước đi
+                    if game.make_move(row, col, player_symbol):
+                        # Gửi cập nhật cho cả 2 người chơi
+                        move_data = {
+                            'type': 'MOVE_UPDATE',
+                            'row': row,
+                            'col': col,
+                            'symbol': player_symbol,
+                            'board': game.get_board_state()
+                        }
+                        
+                        self.send_message(client1, move_data)
+                        self.send_message(client2, move_data)
+                        
+                        # Kiểm tra game kết thúc
+                        if game.is_game_over():
+                            winner = game.get_winner()
+                            
+                            if winner == 'DRAW':
+                                result_data = {
+                                    'type': 'GAME_OVER',
+                                    'result': 'DRAW',
+                                    'message': 'Hòa!'
+                                }
+                                self.send_message(client1, result_data)
+                                self.send_message(client2, result_data)
+                            else:
+                                message = f'Người chơi {winner} thắng!'
+                                result_client1 = {
+                                    'type': 'GAME_OVER',
+                                    'result': 'WIN' if winner == players[client1]['symbol'] else 'LOSE',
+                                    'message': message
+                                }
+                                # Gửi kết quả cho client 1
+                                self.send_message(client1, result_client1)
+                                result_client2 = {
+                                    'type': 'GAME_OVER',
+                                    'result': 'WIN' if winner == players[client2]['symbol'] else 'LOSE',
+                                    'message': message
+                                }
+                                # Gửi kết quả cho client 2
+                                self.send_message(client2, result_client2)
+                            
+                            break
+                    else:
+                        # Nước đi không hợp lệ
+                        self.send_message(current_socket, {
+                            'type': 'INVALID_MOVE',
+                            'message': 'Nước đi không hợp lệ!'
+                        })
+        
+        except Exception as e:
+            print(f"❌ Lỗi trong phòng chơi: {e}")
+        
+        finally:
+            # Đóng kết nối
+            try:
+                client1.close()
+                client2.close()
+            except:
+                pass
+            print("🏁 Một phòng chơi đã kết thúc")
+    
 
 def handle(sock, addr):
 	clients.add(sock)
