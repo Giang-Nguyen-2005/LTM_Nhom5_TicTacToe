@@ -193,62 +193,46 @@ class TicTacToeServer:
             print("🏁 Một phòng chơi đã kết thúc")
     
 
-def handle(sock, addr):
-	clients.add(sock)
-	name = f"Player@{addr[0]}:{addr[1]}"
-	send(sock, {"type":"INFO","msg":"Connected. Send: {\"type\":\"JOIN\",\"name\":\"Alice\"}"})
-	try:
-		buf = ""
-		while True:
-			data = sock.recv(BUFSIZE)
-			if not data: break
-			buf += data.decode(ENC, errors="ignore")
-			while "\n" in buf:
-				line, buf = buf.split("\n",1)
-				if not line.strip(): continue
-				try:
-					msg = json.loads(line)
-				except Exception:
-					send(sock, {"type":"ERROR","msg":"Invalid JSON"})
-					continue
+    def send_message(self, client_socket, data):
+        """
+        Gửi tin nhắn đến client (định dạng JSON)
+        
+        Args:
+            client_socket: Socket của client
+            data (dict): Dữ liệu cần gửi
+        """
+        try:
+            message = json.dumps(data) + '\n'
+            client_socket.sendall(message.encode('utf-8'))
+        except Exception as e:
+            print(f"❌ Lỗi khi gửi tin nhắn: {e}")
+    
+    def receive_message(self, client_socket):
+        """
+        Nhận tin nhắn từ client (định dạng JSON)
+        
+        Args:
+            client_socket: Socket của client
+        
+        Returns:
+            dict: Dữ liệu nhận được, hoặc None nếu lỗi
+        """
+        try:
+            buffer = ""
+            while True:
+                chunk = client_socket.recv(1024).decode('utf-8')
+                if not chunk:
+                    return None
+                
+                buffer += chunk
+                if '\n' in buffer:
+                    message, buffer = buffer.split('\n', 1)
+                    return json.loads(message)
+        except Exception as e:
+            print(f"❌ Lỗi khi nhận tin nhắn: {e}")
+            return None
 
-				t = msg.get("type")
-				if t == "JOIN":
-					name = msg.get("name","Player")
-					role = game.assign_role(sock, name)
-					broadcast({"type":"INFO","msg":f"{name} joined as {role}."})
-					send(sock, {"type":"ROLE","mark":role})
-					send(sock, game.snapshot())
-				elif t == "MOVE":
-					idx = int(msg.get("cell",-1))
-					ok, reason = game.move(sock, idx)
-					if not ok:
-						send(sock, {"type":"ERROR","msg":reason})
-					broadcast(game.snapshot())
-				elif t == "CHAT":
-					txt = str(msg.get("msg","")).strip()[:200]
-					if txt:
-						broadcast({"type":"CHAT","from":name,"msg":txt})
-				elif t == "RESET":
-					game.reset()
-					broadcast({"type":"INFO","msg":"Game reset."})
-					broadcast(game.snapshot())
-				else:
-					send(sock, {"type":"ERROR","msg":"Unknown type"})
-	except Exception as e:
-		pass
-	finally:
-		drop_client(sock)
-
-def main():
-	print(f"[Server] TicTacToe on {HOST}:{PORT}")
-	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-		s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		s.bind((HOST, PORT))
-		s.listen(16)
-		while True:
-			conn, addr = s.accept()
-			threading.Thread(target=handle, args=(conn,addr), daemon=True).start()
 
 if __name__ == "__main__":
-	main()
+    server = TicTacToeServer(host='0.0.0.0', port=5555)
+    server.start()
