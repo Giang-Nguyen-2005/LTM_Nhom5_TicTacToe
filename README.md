@@ -4,138 +4,158 @@ Midterm project: networked Tic-Tac-Toe (3x3) using a simple line-based text prot
 
 This repository contains the server (`server.py`), the pygame GUI client (`client_ttt.py`), the game logic (`game.py`) and the `assets/` used by the GUI.
 ## Game run:
-<img width="1343" height="237" alt="image" src="https://github.com/user-attachments/assets/d696dba2-0026-4008-b30e-483df3a6804e" />
-<img width="954" height="335" alt="image" src="https://github.com/user-attachments/assets/ba48787a-c421-48d6-891c-7421bc572f89" />
-<img width="1123" height="786" alt="image" src="https://github.com/user-attachments/assets/ff938ebd-dc8e-4af9-b901-3ed3656c41ab" />
-<img width="1116" height="788" alt="image" src="https://github.com/user-attachments/assets/74f89e5a-340b-409b-a99d-931a279cec20" />
-<img width="1118" height="775" alt="image" src="https://github.com/user-attachments/assets/b1366f40-e2ae-4115-996b-39e5b5325f84" />
-<img width="1118" height="781" alt="image" src="https://github.com/user-attachments/assets/ab347144-ad9a-4028-830c-2b7957bb57ff" />
-<img width="1122" height="785" alt="image" src="https://github.com/user-attachments/assets/41c27f14-b0fe-416b-8959-e9c201f08d9b" />
+
 
 ## Quick start
 
-1. Install dependencies (GUI client requires pygame):
+# ![Demo screenshot](assets/Screenshot%202025-11-18%20000042.png)
+
+# Tic-Tac-Toe (Networked)
+
+Phiên bản ngắn: Trò Tic-Tac-Toe (3x3) nhiều người chơi qua TCP sockets. Repository chứa:
+
+- `server.py` — server ghép đôi và điều phối các phòng chơi (mặc định lắng nghe `0.0.0.0:5555`).
+- `client_ttt.py` — client GUI (Tkinter) để kết nối và chơi.
+- `game.py` — logic game (kiểm tra nước đi, thắng/hòa).
+- `assets/` — tài nguyên giao diện (nếu có).
+
+---
+
+**Mục lục**
+
+- Overview
+- Yêu cầu
+- Cài đặt
+- Chạy server
+- Chạy client (GUI)
+- Hướng dẫn chơi (chi tiết)
+- Thông tin giao thức ngắn
+- Khắc phục sự cố (Troubleshooting)
+- Ghi chú
+
+---
+
+**Overview:**
+
+Trò chơi ghép 2 người chơi trên server. Server ghép cặp theo thứ tự kết nối và tạo một phòng (thread) cho mỗi ván. Client là GUI đơn giản dùng `tkinter` (không cần pygame).
+
+**Yêu cầu:**
+
+- Python 3.8+ (đã kiểm tra với Python 3.12 trên máy phát triển).
+- Thư viện chuẩn (`socket`, `threading`, `json`, `tkinter`) — `tkinter` thường có sẵn với Python trên Windows; nếu không có, cài thông qua bộ cài Python.
+
+Không cần `pygame` cho client này (ghi chú: README cũ nhắc tới `pygame` nhưng client hiện dùng `tkinter`).
+
+---
+
+**Cài đặt nhanh (Windows, PowerShell):**
+
+1. (Tùy chọn) Tạo virtualenv:
 
 ```powershell
-python -m pip install pygame
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
 
-2. Start the server on the default port 5051:
+2. Cài dependencies (không có thư viện bên ngoài bắt buộc). Nếu bạn muốn cài thêm thứ gì, dùng pip:
+
+```powershell
+python -m pip install --upgrade pip
+# (không có phụ thuộc bắt buộc cho client/server hiện tại)
+```
+
+---
+
+**Chạy server:**
+
+Mặc định server lắng nghe port `5555` (xem `server.py`). Để chạy server:
 
 ```powershell
 python server.py
 ```
 
-3. Start one or more GUI clients:
+Bạn sẽ thấy dòng: `Server đang chạy tại 0.0.0.0:5555` và `Đang chờ người chơi kết nối...`.
+
+Để sử dụng cổng khác, chỉnh tham số trong mã (khởi tạo `TicTacToeServer(host, port)`) hoặc sửa file trước khi chạy.
+
+**Chạy client (GUI):**
 
 ```powershell
 python client_ttt.py
 ```
 
-ASCII playthrough (readable preview)
+Client sẽ mở cửa sổ GUI. Khi bấm `Kết nối Server`, hộp thoại sẽ yêu cầu `IP` và `Port` (mặc định `127.0.0.1` và `5555`).
 
-The project uses a simple text protocol. Below is an ASCII simulation of a short game so you can picture how the board and messages look in a console-based view.
-
-Board coordinate indices: rows and columns are 0..2
-
-Empty board (cells shown as numbers for coordinates):
-
-```text
-   0   1   2
-0  . | . | .
-  ---+---+---
-1  . | . | .
-  ---+---+---
-2  . | . | .
-```
-
-Legend: X (player X), O (player O), . empty
-
-Sample session (server -> client lines and client -> server moves):
-
-```text
-SERVER: START X
-SERVER: MESSAGE Waiting for opponent...
-SERVER: YOUR_TURN
-CLIENT -> SERVER: MOVE 0 0    # Player X places at row 0, col 0
-SERVER: VALID_MOVE
-SERVER -> O: OPPONENT_MOVE 0 0
-```
-
-Board after X's first move:
-
-```text
-   0   1   2
-0  X | . | .
-  ---+---+---
-1  . | . | .
-  ---+---+---
-2  . | . | .
-```
-
-Next moves (condensed):
-
-```text
-1) X -> MOVE 0 0  (valid)
-2) O -> MOVE 1 1  (valid)
-3) X -> MOVE 0 1  (valid)
-4) O -> MOVE 2 2  (valid)
-5) X -> MOVE 0 2  (valid)  <-- X completes top row and wins
-```
-
-Final board (X wins):
-
-```text
-   0   1   2
-0  X | X | X   <- X wins
-  ---+---+---
-1  . | O | .
-  ---+---+---
-2  . | . | O
-```
-
-Server final messages for winner:
-
-```text
-SERVER: WIN
-SERVER -> opponent: LOSE
-```
-
-How to read this in the GUI
-
-- The GUI client sends moves as (row, col) to the server.
-- The server validates moves and broadcasts opponent moves.
-- The GUI shows the same final board as the ASCII art above.
-
-Notes
-
-- This README provides a console-friendly preview of gameplay so reviewers can understand game flow without launching the GUI.
-- For more details about the message protocol see `server.py` and `game.py`.
----
-# Demo Game XO
-
-Xem video demo:  
-[![Watch the video](https://img.youtube.com/vi/u8EoFwwrKfs/0.jpg)](https://youtu.be/u8EoFwwrKfs)
-
-<iframe width="560" height="315" src="https://www.youtube.com/embed/u8EoFwwrKfs" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-
----
-## Cách chơi đúng (Hướng dẫn nhanh - tiếng Việt)
-
-- Mục tiêu: 3 dấu cùng loại (X hoặc O) thẳng hàng — hàng ngang, hàng dọc hoặc đường chéo.
-- Chuẩn bị: Mở `server.py` trước (mặc định lắng nghe cổng 5051), rồi mở 1 hoặc 2 client bằng `client_ttt.py`.
-- Tạo người chơi: Dùng ô "P1 Name" / "P2 Name" và bấm "Join" để tạo kết nối cho Player 1 / Player 2. Có thể tạo cả hai trong cùng một cửa sổ.
-- Lượt đi: X luôn đi trước. Chỉ được nhấp để đánh khi server thông báo đến lượt của bạn (GUI sẽ chỉ hiện ghost mark khi hợp lệ).
-- Cách đánh: Nhấp vào ô trên bàn cờ để gửi MOVE tới server. Nếu đang ở chế độ Split Screen, nhấp vào bàn bên trái để điều khiển P1, bàn bên phải để điều khiển P2.
-- Trường hợp không hợp lệ: Nếu ô đã có hoặc không phải lượt bạn, server sẽ không chấp nhận nước đi — GUI sẽ không thay đổi ô đó.
-- Kết thúc ván: Khi có người thắng hoặc hòa, GUI sẽ hiển thị thông báo thắng/hòa. Dùng nút "Reset" để bắt đầu ván mới.
-- Chat: Gõ vào ô Chat (sidebar) và nhấn Enter để gửi — tin nhắn sẽ được gửi từ client mà bạn đang điều khiển (Control P1 / Control P2).
-- Tùy chọn giao diện: Dùng nút "Split Screen" để xem hai bàn song song (thuận tiện khi bạn chạy cả P1 và P2 trên cùng một máy). Dùng "Control P1" / "Control P2" để chuyển focus nhập liệu/chat.
-
-Mẹo nhanh:
-- Nếu gặp lỗi kết nối, kiểm tra rằng `server.py` đang chạy và cổng đúng (5051), hoặc thay đổi `SERVER_HOST`/`SERVER_PORT` trong `client_ttt.py` nếu cần.
-- Để chơi nhanh trên cùng một máy: mở 1 cửa sổ GUI, bấm Join cả P1 và P2, bật Split Screen — bạn sẽ thấy hai bàn và có thể nhấp vào mỗi bàn để gửi nước đi.
+Lưu ý: client không yêu cầu tên người chơi qua tham số dòng lệnh; việc đặt P1/P2/Join được thực hiện qua GUI.
 
 ---
 
-For additional developer notes and protocol examples see `server.py` and `game.py`.
+**Hướng dẫn chơi (ngắn gọn):**
+
+- Mục tiêu: 3 dấu cùng loại (X hoặc O) thẳng hàng (hàng ngang, dọc hoặc chéo).
+- Thứ tự: X đi trước.
+- Luật mạng: client gửi JSON dạng `{"type": "MOVE", "row": r, "col": c}` (dòng kết thúc `\n`). Server kiểm tra hợp lệ, cập nhật, rồi gửi `MOVE_UPDATE` cho cả hai.
+
+Chi tiết thao tác trong GUI:
+
+1. Chạy `server.py` trước.
+2. Chạy 2 client (có thể chạy 2 cửa sổ `client_ttt.py` hoặc chạy 1 cửa sổ và dùng chức năng để tạo cả P1/P2 nếu GUI hỗ trợ Split Screen).
+3. Mỗi client bấm `Kết nối Server` và nhập `IP` + `Port` (ví dụ `127.0.0.1:5555`).
+4. Khi server ghép cặp xong, client nhận `START` và GUI sẽ cho phép click vào ô trống để đánh khi đến lượt.
+5. Nếu nước đi hợp lệ server gửi `MOVE_UPDATE` cho cả hai; nếu không hợp lệ client sẽ không thay đổi ô và có thể nhận `INVALID_MOVE`.
+6. Khi ván kết thúc, server gửi `GAME_OVER` với `result` là `WIN` / `LOSE` / `DRAW`.
+
+---
+
+**Thông tin giao thức ngắn (để phát triển):**
+
+- Client -> Server JSON messages (line-delimited):
+  - `{"type":"MOVE","row":<0-2>,"col":<0-2>}`
+  - `{"type":"DISCONNECT"}` (khi client đóng kết nối)
+- Server -> Client JSON messages (line-delimited):
+  - `{"type":"WAITING","message":"..."}` — đang chờ đối thủ
+  - `{"type":"START","symbol":"X"|"O","message":"..."}` — bắt đầu ván
+  - `{"type":"MOVE_UPDATE","row":r,"col":c,"symbol":"X"|"O","board": <board_state>}`
+  - `{"type":"INVALID_MOVE","message":"..."}`
+  - `{"type":"GAME_OVER","result":"WIN"|"LOSE"|"DRAW","message":"..."}`
+  - `{"type":"OPPONENT_DISCONNECTED","message":"..."}`
+
+`board_state` là danh sách 3x3 như trong `game.py` (None cho ô trống, 'X' hoặc 'O').
+
+---
+
+**Khắc phục sự cố (Troubleshooting):**
+
+- Nếu client không kết nối: kiểm tra server đang chạy, ip/port đúng, firewall không chặn port `5555`.
+- Nếu GUI không hiện (`tkinter` lỗi): đảm bảo Python được cài kèm `tkinter` (trên Windows thường mặc định có). Nếu không, cài lại Python với tùy chọn `tcl/tk and IDLE`.
+- Nếu thấy thông báo `Address already in use`: có thể port đang được dùng; đổi port trong `server.py` hoặc tắt tiến trình đang dùng port đó.
+
+---
+
+**Ghi chú cho người phát triển:**
+
+- File `game.py` chứa logic độc lập, dễ dùng để viết client console hoặc bot.
+- `server.py` hiện ghép cặp theo thứ tự kết nối; có thể mở rộng để hỗ trợ lobby, tên người chơi, hoặc rooms có nhiều người.
+
+---
+
+**Tóm tắt lệnh (PowerShell):**
+
+```powershell
+# Chạy server
+python server.py
+
+# Chạy client GUI
+python client_ttt.py
+```
+
+---
+
+Nếu bạn muốn, tôi có thể:
+
+- Thêm hướng dẫn cài đặt một virtualenv và script start/stop.
+- Thêm ví dụ client console (không GUI) dùng để test nhanh.
+- Commit thay đổi và tạo PR (nếu bạn muốn tôi làm).
+
+---
+© Nhóm LTM_Nhom5_TicTacToe
