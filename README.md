@@ -151,11 +151,5 @@ python client_ttt.py
 
 ---
 
-Nếu bạn muốn, tôi có thể:
 
-- Thêm hướng dẫn cài đặt một virtualenv và script start/stop.
-- Thêm ví dụ client console (không GUI) dùng để test nhanh.
-- Commit thay đổi và tạo PR (nếu bạn muốn tôi làm).
-
----
 © Nhóm LTM_Nhom5_TicTacToe
