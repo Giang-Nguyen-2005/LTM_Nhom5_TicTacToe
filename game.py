@@ -1,134 +1,77 @@
+# game.py
 class TicTacToeGame:
     """
     Lớp quản lý logic game Tic-Tac-Toe 3x3
     """
     
     def __init__(self):
-        # Khởi tạo bàn cờ 3x3 (None = ô trống)
         self.board = [[None for _ in range(3)] for _ in range(3)]
-        self.current_player = 'X'  # X đi trước
+        self.current_player = 'X'
         self.winner = None
         self.game_over = False
+        self.winning_line = None
     
     def make_move(self, row, col, player):
-        """
-        Thực hiện nước đi
-        
-        Args:
-            row (int): Hàng (0-2)
-            col (int): Cột (0-2)
-            player (str): 'X' hoặc 'O'
-        
-        Returns:
-            bool: True nếu nước đi hợp lệ, False nếu không
-        """
-        # Kiểm tra nước đi hợp lệ
-        if self.game_over:
+        if self.game_over or row < 0 or row > 2 or col < 0 or col > 2:
+            return False
+        if self.board[row][col] is not None or player != self.current_player:
             return False
         
-        if row < 0 or row > 2 or col < 0 or col > 2:
-            return False
-        
-        if self.board[row][col] is not None:
-            return False
-        
-        if player != self.current_player:
-            return False
-        
-        # Thực hiện nước đi
         self.board[row][col] = player
         
-        # Kiểm tra thắng
         if self.check_win(player):
             self.winner = player
             self.game_over = True
             return True
         
-        # Kiểm tra hòa
         if self.check_draw():
             self.winner = 'DRAW'
             self.game_over = True
             return True
         
-        # Chuyển lượt
         self.current_player = 'O' if player == 'X' else 'X'
         return True
     
     def check_win(self, player):
-        """
-        Kiểm tra người chơi có thắng không
-        
-        Args:
-            player (str): 'X' hoặc 'O'
-        
-        Returns:
-            bool: True nếu thắng, False nếu không
-        """
-        # Kiểm tra 3 hàng ngang
-        for row in range(3):
-            if all(self.board[row][col] == player for col in range(3)):
+        # Check rows
+        for i in range(3):
+            if all(self.board[i][j] == player for j in range(3)):
+                self.winning_line = [[i, 0], [i, 1], [i, 2]]
                 return True
-        
-        # Kiểm tra 3 cột dọc
-        for col in range(3):
-            if all(self.board[row][col] == player for row in range(3)):
+        # Check columns
+        for j in range(3):
+            if all(self.board[i][j] == player for i in range(3)):
+                self.winning_line = [[0, j], [1, j], [2, j]]
                 return True
-        
-        # Kiểm tra đường chéo chính (top-left to bottom-right)
+        # Diagonal TL-BR
         if all(self.board[i][i] == player for i in range(3)):
+            self.winning_line = [[0, 0], [1, 1], [2, 2]]
             return True
-        
-        # Kiểm tra đường chéo phụ (top-right to bottom-left)
+        # Diagonal TR-BL
         if all(self.board[i][2-i] == player for i in range(3)):
+            self.winning_line = [[0, 2], [1, 1], [2, 0]]
             return True
-        
+        self.winning_line = None
         return False
     
     def check_draw(self):
-        """
-        Kiểm tra ván đấu có hòa không (bàn cờ đầy mà không có ai thắng)
-        
-        Returns:
-            bool: True nếu hòa, False nếu không
-        """
-        for row in range(3):
-            for col in range(3):
-                if self.board[row][col] is None:
-                    return False
-        return True
+        return all(self.board[i][j] is not None for i in range(3) for j in range(3))
     
     def get_board_state(self):
-        """
-        Lấy trạng thái bàn cờ hiện tại
-        
-        Returns:
-            list: Bàn cờ 3x3
-        """
-        return self.board
+        return [row[:] for row in self.board]
     
     def reset(self):
-        """
-        Reset game về trạng thái ban đầu
-        """
         self.board = [[None for _ in range(3)] for _ in range(3)]
         self.current_player = 'X'
         self.winner = None
         self.game_over = False
+        self.winning_line = None
     
     def is_game_over(self):
-        """
-        Kiểm tra game đã kết thúc chưa
-        
-        Returns:
-            bool: True nếu game đã kết thúc
-        """
         return self.game_over
     
     def get_winner(self):
-        """
-        Lấy người thắng cuộc
-        
-        Returns:
-            str: 'X', 'O', 'DRAW', hoặc None nếu chưa kết thúc
-        """
         return self.winner
+
+    def get_winning_line(self):
+        return self.winning_line
